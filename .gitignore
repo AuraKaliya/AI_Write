@@ -72,3 +72,4 @@ xiaoshuo/**
 templates/
 templates/*.json
 templates/template_index.json
+testData/**
