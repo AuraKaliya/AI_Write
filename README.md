@@ -1,8 +1,9 @@
-
+#### 阶段更新日志
+6.24 项目重构
 
 
 
 #### 其他
 
-该项目灵感来自https://github.com/yefeng2renxing/AIxiezuo.git，6月23版本，感谢作者为我提供了基础的流程设计工作。
+该项目灵感来自 https://github.com/yefeng2renxing/AIxiezuo.git ，6月23版本，感谢作者为我提供了基础的流程设计工作。
 
