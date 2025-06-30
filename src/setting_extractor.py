@@ -1,7 +1,7 @@
 import os,json,re
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
-from .world_setting import WorldSetting,BaseWorldSetting
+from world_setting import WorldSetting,BaseWorldSetting
 
 class SettingExtractor:
     """
@@ -9,20 +9,31 @@ class SettingExtractor:
     同时支持 JSON 文本与对象之间的转换。
     """
     
-    def __init__(self, filepath: str):
-        self.filepath = filepath
-        self.settings = self._load_settings_from_file(filepath)
+    def __init__(
+        self,
+        source: str,
+        settings: Optional[Dict[str, Any]] = None
+    ):
+        """
+        初始化方式：
+          - 如果只传了 source（字符串），且 settings=None，视作文件路径 -> 从文件加载。
+          - 如果同时传 source（字符标识）和 settings（完整字典），直接使用该字典。
+        """
+        # 情况 A: 直接传入字典，绕过文件加载
+        if settings is not None:
+            if not isinstance(settings, dict):
+                raise ValueError("当提供 settings 时，settings 必须是 Dict[str, Any]")
+            filepath = source
+            self.settings = settings
 
-    def _load_settings_from_file(self, filepath: str) -> Dict[str, Any]:
-        """
-        从 JSON 文件中加载世界设定数据，返回一个字典。
-        文件结构要求包含 "base_world_setting" 与 "related_settings" 两个顶级字段。
-        """
-        if not os.path.isfile(filepath):
-            raise FileNotFoundError(f"文件 {filepath} 不存在")
-        with open(filepath, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        return data
+        # 情况 B: 只传 source，视作 JSON 文件路径
+        else:
+            filepath = source
+            if not os.path.isfile(filepath):
+                raise FileNotFoundError(f"文件 {filepath} 不存在")
+            self.filepath = filepath
+            with open(filepath, 'r', encoding='utf-8') as f:
+                self.settings = json.load(f)
 
     def get_setting(self, keywords: List[str]) -> WorldSetting:
         """
@@ -89,7 +100,7 @@ if __name__ == "__main__":
         print(whole_setting.to_json())
 
         # 根据关键词查询相关设定
-        query_keywords = ["1", "寿命锁"]
+        query_keywords = [""]
         relevant_setting = whole_setting.get_setting(query_keywords)
 
         print("\n查询结果，生成的 WorldSetting 对象：")

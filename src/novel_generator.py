@@ -54,9 +54,10 @@ class NovelGenerator:
                 user_content += f"\n\n当前状态：{state.model_dump_json(indent=2)}"
         
         if use_world_bible:
-            world_bible = self.state_manager.load_world_bible(novel_id)
+            key_words = ""
+            world_bible = self.state_manager.load_world_bible(key_words,novel_id)
             if world_bible:
-                user_content += f"\n\n世界设定：{json.dumps(world_bible, ensure_ascii=False, indent=2)}"
+                user_content += f"\n\n相关世界设定：{json.dumps(world_bible, ensure_ascii=False, indent=2)}"
         
         user_message = {"role": "user", "content": user_content}
         messages.append(user_message)
