@@ -68,6 +68,15 @@ class StateManager:
             world_setting = setting_extractor.get_setting(key_words)
             return world_setting.model_dump()
 
+    def load_novel_outline(self,novel_id:Optional[str] = None)-> Dict[str, Any]:
+        """加载小说大纲和细纲"""
+        latest_file = self._find_latest_file("novel_outline_*.json", novel_id)
+        if not latest_file:
+            return {}
+        
+        with open(latest_file, 'r', encoding='utf-8') as f:
+            
+        
     def save_world_bible(self, world_bible: Dict[str, Any], novel_id: Optional[str] = None, version: int = 0):
         """保存世界设定，支持小说ID"""
         if novel_id:
