@@ -26,7 +26,8 @@ class NovelGenerator:
         use_compression: bool = False,
         compression_model: str = "deepseek_chat",
         read_compressed: bool = False,
-        novel_id: Optional[str] = None
+        novel_id: Optional[str] = None,
+        use_novel_outline : bool = True
     ) -> str:
         messages = []
         
@@ -46,8 +47,17 @@ class NovelGenerator:
             messages.extend(history_messages)
         
         # 构建用户输入 - 使用更自然的提示词表达
-        user_content = f"请根据下面的章节细纲进行小说内容创作：\n\n{chapter_outline}"
-        
+        user_content = f"请根据下面的章节细纲进行小说内容创作：\n\n章节细纲：{chapter_outline}"
+        user_content += f"\n\n 我为你提供以下信息进行参考。"
+        if use_novel_outline :
+            novel_outline = self.state_manager.load_novel_outline(novel_id)
+            if novel_outline:
+                user_content += f"\n\n小说大纲：{json.dumps(novel_outline, ensure_ascii=False, indent=2)}" 
+            stage_name = ""
+            stage_outline = self.state_manager.load_stage_outline(novel_id)
+            if stage_outline:
+                user_content += f"\n\n当前阶段细纲：{json.dumps(stage_outline, ensure_ascii=False, indent=2)}"
+
         if use_state:
             state = self.state_manager.load_latest_state(novel_id)
             if state:

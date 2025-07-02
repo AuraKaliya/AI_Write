@@ -4,6 +4,7 @@ from typing import Dict, Any, List, Optional
 from .chapter_state import ChapterState
 from .setting_extractor import SettingExtractor
 from pydantic import BaseModel
+from .outline_manager import OutlineManager
 class StateManager:
     def __init__(self, data_path: str = "./data"):
         self.data_path = data_path
@@ -75,8 +76,21 @@ class StateManager:
             return {}
         
         with open(latest_file, 'r', encoding='utf-8') as f:
-            
+            outline_manager = OutlineManager(latest_file,json.load(f))
+            novel_outline = outline_manager.get_novel_outline()
+            return novel_outline.model_dump()
         
+    def load_stage_outline(self,stage_name = "",novel_id:Optional[str] = None)-> Dict[str, Any]:
+        """加载小说细纲"""
+        latest_file = self._find_latest_file("novel_outline_*.json", novel_id)
+        if not latest_file:
+            return {}
+        
+        with open(latest_file, 'r', encoding='utf-8') as f:
+            outline_manager = OutlineManager(latest_file,json.load(f))
+            stage_outline = outline_manager.get_stage_outline(stage_name)
+            return stage_outline.model_dump()
+
     def save_world_bible(self, world_bible: Dict[str, Any], novel_id: Optional[str] = None, version: int = 0):
         """保存世界设定，支持小说ID"""
         if novel_id:
