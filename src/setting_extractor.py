@@ -1,7 +1,7 @@
 import os,json,re
 from pydantic import BaseModel
 from typing import Dict, Any, List, Optional
-from world_setting import WorldSetting,BaseWorldSetting
+from .world_setting import WorldSetting,BaseWorldSetting
 
 class SettingExtractor:
     """

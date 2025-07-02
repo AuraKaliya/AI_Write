@@ -2,6 +2,8 @@
 from src.novel_generator import NovelGenerator
 from src.llm_config_manager import LLMConfigManager
 from src.llm_caller import LLMCaller
+import os, json, time
+from src.outline_manager import OutlineManager
 
 def main():
     # 测试架构初始化
@@ -31,22 +33,28 @@ def main():
     sessions = generator.memory_manager.list_sessions()
     print(f"   当前会话列表: {sessions}")
     
+    # 4. 测试小说生成器传输结构
+    print("\n4. 小说生成器传输结构:")
+    outline_manager = OutlineManager("data/100_novel_outline_00.json")
+    
+    message = generator.generate_chapter(chapter_outline=json.dumps(outline_manager.get_chapter_outline("第1章").model_dump(), ensure_ascii=False, indent=2),novel_id=100)
+    print(message)
     # 4. 显示使用示例
-    print("\n4. 使用示例:")
-    print("   # 生成章节 (带记忆)")
-    print("   generator.generate_chapter(chapter_plan, use_memory=True, recent_count=20)")
-    print("   # 对话聊天 (带压缩)")
-    print("   generator.chat('继续写作', use_compression=True, recent_count=15)")
-    print("   # 按范围加载记忆")
-    print("   generator.load_memory_by_range('session1', 1, 50, use_compression=True)")
-    print("   # 压缩记忆分片")
-    print("   generator.compress_memory_chunk('session1', 1)")
-    print("   # 批量压缩")
-    print("   generator.batch_compress_memory('session1', [1,2,3])")
-    print("   # 获取统计信息")
-    print("   generator.get_memory_stats('session1')")
-    print("   # 直接调用LLM")
-    print("   LLMCaller.call(messages, model_name='dsf5')")
+    # print("\n4. 使用示例:")
+    # print("   # 生成章节 (带记忆)")
+    # print("   generator.generate_chapter(chapter_plan, use_memory=True, recent_count=20)")
+    # print("   # 对话聊天 (带压缩)")
+    # print("   generator.chat('继续写作', use_compression=True, recent_count=15)")
+    # print("   # 按范围加载记忆")
+    # print("   generator.load_memory_by_range('session1', 1, 50, use_compression=True)")
+    # print("   # 压缩记忆分片")
+    # print("   generator.compress_memory_chunk('session1', 1)")
+    # print("   # 批量压缩")
+    # print("   generator.batch_compress_memory('session1', [1,2,3])")
+    # print("   # 获取统计信息")
+    # print("   generator.get_memory_stats('session1')")
+    # print("   # 直接调用LLM")
+    # print("   LLMCaller.call(messages, model_name='dsf5')")
     
     print("\n=== 架构测试完成 ===")
     print("所有组件已成功初始化，可以开始使用！")

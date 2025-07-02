@@ -48,7 +48,7 @@ class NovelGenerator:
         
         # 构建用户输入 - 使用更自然的提示词表达
         user_content = f"请根据下面的章节细纲进行小说内容创作：\n\n章节细纲：{chapter_outline}"
-        user_content += f"\n\n 我为你提供以下信息进行参考。"
+        user_content += f"\n\n ===参考信息==="
         if use_novel_outline :
             novel_outline = self.state_manager.load_novel_outline(novel_id)
             if novel_outline:
@@ -64,11 +64,11 @@ class NovelGenerator:
                 user_content += f"\n\n当前状态：{state.model_dump_json(indent=2)}"
         
         if use_world_bible:
-            key_words = ""
+            key_words = [""]
             world_bible = self.state_manager.load_world_bible(key_words,novel_id)
             if world_bible:
                 user_content += f"\n\n相关世界设定：{json.dumps(world_bible, ensure_ascii=False, indent=2)}"
-        
+        user_content += f"\n\n ===参考信息===end\n"
         user_message = {"role": "user", "content": user_content}
         messages.append(user_message)
         
@@ -77,7 +77,8 @@ class NovelGenerator:
             self.memory_manager.save_message(session_id, user_message)
         
         # 调用LLM
-        response = LLMCaller.call(messages, model_name)
+        #response = LLMCaller.call(messages, model_name)
+        response = messages
         
         # 保存AI回复到记忆
         if use_memory:
@@ -116,30 +117,30 @@ class NovelGenerator:
         if chapter_index is not None:
             self._save_chapter(response, chapter_index, novel_id)
         
-        # 状态更新 - 如果启用状态更新且使用了状态
-        if update_state and use_state:
-            current_state = self.state_manager.load_latest_state(novel_id)
-            if current_state:
-                print(f"正在更新状态...")
-                try:
-                    # 读取状态更新规则
-                    update_rules_file = os.path.join("./prompts", "update_state_rules.txt")
-                    update_system_prompt = ""
-                    if os.path.exists(update_rules_file):
-                        with open(update_rules_file, 'r', encoding='utf-8') as f:
-                            update_system_prompt = f.read().strip()
+        # #状态更新 - 如果启用状态更新且使用了状态
+        # if update_state and use_state:
+        #     current_state = self.state_manager.load_latest_state(novel_id)
+        #     if current_state:
+        #         print(f"正在更新状态...")
+        #         try:
+        #             # 读取状态更新规则
+        #             update_rules_file = os.path.join("./prompts", "update_state_rules.txt")
+        #             update_system_prompt = ""
+        #             if os.path.exists(update_rules_file):
+        #                 with open(update_rules_file, 'r', encoding='utf-8') as f:
+        #                     update_system_prompt = f.read().strip()
                     
-                    # 调用状态更新
-                    new_state = self.update_state(
-                        chapter_content=response,
-                        current_state=current_state,
-                        model_name=model_name,
-                        novel_id=novel_id,
-                        system_prompt=update_system_prompt
-                    )
-                    print(f"状态更新完成，新状态已保存")
-                except Exception as e:
-                    print(f"状态更新失败: {e}")
+        #             # 调用状态更新
+        #             new_state = self.update_state(
+        #                 chapter_content=response,
+        #                 current_state=current_state,
+        #                 model_name=model_name,
+        #                 novel_id=novel_id,
+        #                 system_prompt=update_system_prompt
+        #             )
+        #             print(f"状态更新完成，新状态已保存")
+        #         except Exception as e:
+        #             print(f"状态更新失败: {e}")
         
         return response
 

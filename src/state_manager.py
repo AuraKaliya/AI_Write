@@ -5,6 +5,7 @@ from .chapter_state import ChapterState
 from .setting_extractor import SettingExtractor
 from pydantic import BaseModel
 from .outline_manager import OutlineManager
+
 class StateManager:
     def __init__(self, data_path: str = "./data"):
         self.data_path = data_path
@@ -58,7 +59,7 @@ class StateManager:
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(state.model_dump_json(indent=2))
 
-    def load_world_bible(self,key_words="" ,novel_id: Optional[str] = None) -> Dict[str, Any]:
+    def load_world_bible(self,key_words=[""] ,novel_id: Optional[str] = None) -> Dict[str, Any]:
         """加载世界设定，支持小说ID过滤"""
         latest_file = self._find_latest_file("world_bible_*.json", novel_id)
         if not latest_file:
