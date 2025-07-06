@@ -81,6 +81,7 @@ class MemoryManager:
             read_compressed: 是否读取已压缩的记忆（从summaries读取）
         """
         # 如果要读取已压缩的记忆
+        print("=01")
         if read_compressed:
             return self._load_compressed_summaries(session_id, start_msg, end_msg)
         
@@ -98,7 +99,7 @@ class MemoryManager:
         
         if start_msg > end_msg:
             return []
-        
+        print("=012")
         # 计算需要的分片
         required_chunks = self.chunk_manager.calculate_required_chunks(start_msg, end_msg)
         
@@ -119,7 +120,7 @@ class MemoryManager:
                 "compression_type": "realtime",
                 "original_count": len(all_messages)
             }]
-        
+        print("=03")
         return all_messages
 
     def _load_compressed_summaries(
@@ -188,12 +189,13 @@ class MemoryManager:
             compression_model: 压缩模型
             read_compressed: 是否读取已压缩的记忆
         """
+        print("=1")
         index_data = self.index_manager.load_session_index(session_id)
         total_messages = index_data["total_messages"]
-        
+        print("=12")
         if total_messages == 0:
             return []
-        
+        print("=13")
         start_msg = max(1, total_messages - count + 1)
         return self.load_messages_by_range(
             session_id, start_msg, total_messages, use_compression, compression_model, read_compressed

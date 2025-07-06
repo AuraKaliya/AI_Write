@@ -58,6 +58,7 @@ class SettingExtractor:
         filtered_settings = {}
         for name, description in all_related_settings.items():
             for kw in keywords:
+                #print("key:",kw)
                 if kw in name or kw in description:
                     filtered_settings[name] = description
                     break  # 一个关键词匹配即可，避免重复添加

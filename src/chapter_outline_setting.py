@@ -51,6 +51,7 @@ class StageOutline(BaseModel):
     故事阶段细纲，描述一个故事阶段的详细内容
     """
     stage_name: str
+    stage_target:list[str]
     main_event: List[MainEvent]
 
 

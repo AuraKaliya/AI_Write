@@ -1,4 +1,5 @@
 import os,time
+import json
 from typing import Dict, Any, List, Optional
 
 class MemoryIndexManager:
@@ -13,11 +14,14 @@ class MemoryIndexManager:
     
     def load_session_index(self, session_id: str) -> Dict[str, Any]:
         """加载会话索引"""
+        print("MemoryIndexManager|load_session_index| 1")
         index_file = os.path.join(self.memory_path, f"{session_id}_index.json")
         if os.path.exists(index_file):
             with open(index_file, 'r', encoding='utf-8') as f:
+                print("MemoryIndexManager|load_session_index| 2")
                 return json.load(f)
         else:
+            print("MemoryIndexManager|load_session_index| 3")
             # 创建新索引
             return {
                 "session_id": session_id,

@@ -8,6 +8,8 @@
 import os
 import json
 import time
+import logger
+import re
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from src.llm_caller import LLMCaller
@@ -150,10 +152,21 @@ def generate_novel():
         use_compression = data.get("use_compression", False)
         use_state = data.get("use_state", True)
         use_world_bible = data.get("use_world_bible", True)
+        use_novel_outline = data.get("use_novel_outline",True)
         update_state = data.get("update_state", False)
         recent_count = data.get("recent_count", 20)
         session_id = data.get("session_id", "default")
         novel_id = data.get("novel_id")
+        outline_raw_key_words = data.get("outline_raw_key_words","")
+        
+        #将outline_raw_key_words（str）处理成outline_key_words(list[str])
+        # 使用正则表达式将中文逗号、英文逗号、竖线、空格作为分隔符
+        outline_key_words = [
+            word.strip()
+            for word in re.split(r"[,\s，|]+", outline_raw_key_words)
+            if word.strip()
+        ]
+        print("|||| ",outline_key_words)
         
         if not template_id:
             return jsonify({"error": "缺少模版ID"}), 400
@@ -174,18 +187,18 @@ def generate_novel():
         
         writer_role = ""
         writing_rules = ""
-        
+        print("33333")
         if os.path.exists(writer_role_file):
             with open(writer_role_file, 'r', encoding='utf-8') as f:
                 writer_role = f.read()
-        
+        print("344443")
         if os.path.exists(writing_rules_file):
             with open(writing_rules_file, 'r', encoding='utf-8') as f:
                 writing_rules = f.read()
-        
+        print("3323")
         # 构建系统提示
         system_prompt = f"{writer_role}\n\n{writing_rules}".strip()
-        
+        print("133")
         # 生成内容
         content = generator.generate_chapter(
             chapter_outline=chapter_outline,  # 使用章节细纲
@@ -199,9 +212,11 @@ def generate_novel():
             recent_count=recent_count,
             use_compression=use_compression,
             read_compressed=read_compressed,
-            novel_id=novel_id
+            novel_id=novel_id,
+            use_novel_outline = use_novel_outline,
+            outline_key_words = outline_key_words
         )
-        
+        print("33")
         return jsonify({
             "content": content,
             "template_used": template.get('name', template_id),
@@ -209,6 +224,7 @@ def generate_novel():
             "word_count": len(content),
             "generated_at": time.strftime("%Y-%m-%d %H:%M:%S")
         })
+        
         
     except Exception as e:
         print(f"生成错误: {e}")
@@ -465,7 +481,8 @@ def read_outline():
     except Exception as e:
         print(f"读取细纲失败: {e}")
         return jsonify({"error": str(e)}), 500
-
+ 
+ 
 @app.route("/api/save-chapter", methods=["POST"])
 def save_chapter():
     """保存章节到文件"""
@@ -503,6 +520,8 @@ def save_chapter():
         })
         
     except Exception as e:
+        import logger
+        
         logger.error(f"保存章节失败: {e}")
         return jsonify({"error": f"保存章节失败: {str(e)}"}), 500
 
@@ -523,6 +542,7 @@ def get_settings_list(novel_id):
         
         character_versions = []
         world_versions = []
+        outline_versions = []
         
         # 扫描data目录中的文件
         for filename in os.listdir(data_path):
@@ -543,17 +563,25 @@ def get_settings_list(novel_id):
                     "version": version,
                     "filename": filename
                 })
+            # 匹配大纲文件: {novel_id}_outline_{version}.json
+            outline_match = re.match(rf'{re.escape(novel_id)}_novel_outline_(\d+)\.json', filename)
+            if outline_match:
+                v = int(outline_match.group(1))
+                outline_versions.append({"version": v, "filename": filename})
         
         # 按版本号排序
         character_versions.sort(key=lambda x: x['version'])
         world_versions.sort(key=lambda x: x['version'])
+        outline_versions.sort(key=lambda x: x['version'])
         
         return jsonify({
             "character_versions": character_versions,
-            "world_versions": world_versions
+            "world_versions": world_versions,
+            "outline_versions": outline_versions
         })
         
     except Exception as e:
+        import logger
         logger.error(f"获取设定列表失败: {e}")
         return jsonify({"error": f"获取设定列表失败: {str(e)}"}), 500
 
@@ -610,7 +638,27 @@ def get_world_settings(novel_id, version):
     except Exception as e:
         logger.error(f"获取世界设定失败: {e}")
         return jsonify({"error": f"获取世界设定失败: {str(e)}"}), 500
+    
+@app.route("/api/settings/<novel_id>/outline/<version>", methods=["GET"])
+def get_outline_settings(novel_id, version):
+    try:
+        filename = f"{novel_id}_novel_outline_{version}.json"
+        path = os.path.join("./data", filename)
+        if not os.path.exists(path):
+            return jsonify({"error": "大纲文件不存在"}), 404
 
+        with open(path, 'r', encoding='utf-8') as f:
+            content = json.load(f)
+
+        return jsonify({
+            "content": content,
+            "filename": filename,
+            "version": int(version)
+        })
+    except Exception as e:
+        logger.error(f"获取大纲失败: {e}")
+        return jsonify({"error": f"获取大纲失败: {str(e)}"}), 500
+    
 @app.route("/api/settings/<novel_id>/character/<version>", methods=["PUT"])
 def save_character_settings(novel_id, version):
     """保存人物设定"""
@@ -678,6 +726,26 @@ def save_world_settings(novel_id, version):
     except Exception as e:
         logger.error(f"保存世界设定失败: {e}")
         return jsonify({"error": f"保存世界设定失败: {str(e)}"}), 500
+
+@app.route("/api/settings/<novel_id>/outline/<version>", methods=["PUT"])
+def save_outline_settings(novel_id, version):
+    try:
+        data = request.get_json()
+        content = data.get('content')
+        if not content:
+            return jsonify({"error": "大纲内容不能为空"}), 400
+
+        os.makedirs("./data", exist_ok=True)
+        filename = f"{novel_id}_novel_outline_{version}.json"
+        path = os.path.join("./data", filename)
+
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(content, f, indent=2, ensure_ascii=False)
+
+        return jsonify({"success": True, "filename": filename, "version": int(version)})
+    except Exception as e:
+        logger.error(f"保存大纲失败: {e}")
+        return jsonify({"error": f"保存大纲失败: {str(e)}"}), 500
 
 @app.route("/api/settings/<novel_id>/character/new", methods=["POST"])
 def create_new_character_version(novel_id):
@@ -778,7 +846,39 @@ def create_new_world_version(novel_id):
     except Exception as e:
         logger.error(f"创建新世界设定版本失败: {e}")
         return jsonify({"error": f"创建新版本失败: {str(e)}"}), 500
+    
+@app.route("/api/settings/<novel_id>/outline/new", methods=["POST"])
+def create_new_outline_version(novel_id):
+    """基于 base_version 的大纲内容，生成新版本"""
+    try:
+        import os, json,re
+        data = request.get_json()
+        content = data.get('content')
+        base_version = data.get('base_version', 0)
 
+        if content is None:
+            return jsonify({"error": "大纲内容不能为空"}), 400
+
+        os.makedirs("./data", exist_ok=True)
+
+        # 确定新版本号
+        existing = []
+        for fn in os.listdir("./data"):
+            m = re.match(rf'{re.escape(novel_id)}_novel_outline_(\d+)\.json', fn)
+            if m:
+                existing.append(int(m.group(1)))
+        new_version = max(existing + [base_version]) + 1
+
+        filename = f"{novel_id}_outline_{new_version}.json"
+        path = os.path.join("./data", filename)
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(content, f, indent=2, ensure_ascii=False)
+
+        return jsonify({"new_version": new_version, "filename": filename})
+    except Exception as e:
+        logger.error(f"创建大纲版本失败: {e}")
+        return jsonify({"error": f"创建大纲版本失败: {str(e)}"}), 500
+    
 # ===== 错误处理 =====
 @app.errorhandler(404)
 def not_found(error):

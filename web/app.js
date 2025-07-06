@@ -532,6 +532,8 @@ class NovelGenerator {
         const templateId = document.getElementById('genTemplateSelect').value;
         const chapterOutlineText = document.getElementById('chapterOutline').value.trim();
         const novelId = document.getElementById('novelId').value.trim();
+        
+        const rawKeywords = document.getElementById('keywordsInput').value.trim();
 
         if (!templateId) {
             throw new Error('请选择模版');
@@ -540,6 +542,7 @@ class NovelGenerator {
         if (!chapterOutlineText) {
             throw new Error('请输入章节细纲');
         }
+
 
         const generateData = {
             template_id: templateId,
@@ -552,8 +555,13 @@ class NovelGenerator {
             use_world_bible: document.getElementById('useWorldBible').checked,
             update_state: document.getElementById('updateState').checked,
             recent_count: parseInt(document.getElementById('recentCount').value) || 20,
-            session_id: novelId || 'default'
+            session_id: novelId || 'default',
+            use_novel_outline: document.getElementById('useOutline').checked,
         };
+            // 如果用户输入了关键词，则加到请求体中
+        if (rawKeywords.length) {
+            generateData.outline_raw_key_words = rawKeywords;
+        }
 
         // 添加小说ID（如果有）
         if (novelId) {
@@ -887,6 +895,7 @@ class BatchGenerator {
                 use_world_bible: document.getElementById('batchUseWorldBible').checked,
                 update_state: document.getElementById('batchUpdateState').checked,
                 recent_count: parseInt(document.getElementById('batchRecentCount').value) || 20,
+
                 session_id: novelId,
                 novel_id: novelId
             };
@@ -1058,6 +1067,10 @@ class SettingsManager {
             this.loadWorldSettings(e.target.value);
         });
 
+        document.getElementById('outlineVersionSelect').addEventListener('change', (e) => {
+            this.loadOutLineSettings(e.target.value);
+        });
+
         // 新建按钮
         document.getElementById('newCharacterBtn').addEventListener('click', () => {
             this.createNewCharacterVersion();
@@ -1065,6 +1078,9 @@ class SettingsManager {
 
         document.getElementById('newWorldBtn').addEventListener('click', () => {
             this.createNewWorldVersion();
+        });
+        document.getElementById('newOutlineBtn').addEventListener('click', () => {
+        this.createNewOutlineVersion();
         });
 
         // 保存按钮
@@ -1074,6 +1090,10 @@ class SettingsManager {
 
         document.getElementById('saveWorldBtn').addEventListener('click', () => {
             this.saveWorldSettings();
+        });
+
+        document.getElementById('saveOutlineBtn').addEventListener('click', () => {
+            this.saveOutlineSettings();
         });
 
         // 小说ID输入框回车事件
@@ -1101,6 +1121,7 @@ class SettingsManager {
             const result = await response.json();
             this.characterVersions = result.character_versions || [];
             this.worldVersions = result.world_versions || [];
+            this.outlineVersions = result.outline_versions || [];
 
             // 更新版本选择框
             this.updateVersionSelects();
@@ -1116,7 +1137,12 @@ class SettingsManager {
                 this.loadWorldSettings(latestWorld.toString().padStart(2, '0'));
             }
 
-            this.showSettingsInfo(`✅ 找到小说 ${novelId}\n👤 人物设定: ${this.characterVersions.length}个版本\n🌍 世界设定: ${this.worldVersions.length}个版本`, 'success');
+            if (this.outlineVersions.length > 0) {
+                const latestOutline = Math.max(...this.outlineVersions.map(v => v.version));
+                this.loadOutlineSettings(latestOutline.toString().padStart(2, '0'));
+            }
+
+            this.showSettingsInfo(`✅ 找到小说 ${novelId}\n👤 人物设定: ${this.characterVersions.length}个版本\n🌍 世界设定: ${this.worldVersions.length}个版本\n🌍 小说大纲: ${this.outlineVersions.length}个版本`, 'success');
 
         } catch (error) {
             this.showSettingsInfo(`❌ 加载失败: ${error.message}`, 'error');
@@ -1146,6 +1172,18 @@ class SettingsManager {
                 version.version.toString().padStart(2, '0')
             );
             worldSelect.appendChild(option);
+        });
+
+        // 更新小说大纲版本选择框
+        const outlineSelect = document.getElementById('outlineVersionSelect');
+        outlineSelect.innerHTML = '<option value="">选择版本...</option>';
+
+        this.outlineVersions.forEach(version => {
+            const option = new Option(
+                `版本 ${version.version.toString().padStart(2, '0')} (${version.filename})`,
+                version.version.toString().padStart(2, '0')
+            );
+            outlineSelect.appendChild(option);
         });
     }
 
@@ -1184,6 +1222,28 @@ class SettingsManager {
 
         } catch (error) {
             Utils.showError(`加载世界设定失败: ${error.message}`);
+        }
+    }
+
+    async loadOutlineSettings(version) {
+        if (!version || !this.currentNovelId) return;
+
+        try {
+            const response = await fetch(
+                `${API_BASE}/settings/${this.currentNovelId}/outline/${version}`
+            );
+            if (!response.ok) throw new Error('加载大纲失败');
+
+            const result = await response.json();
+            document.getElementById('outlineSettings').value =
+                JSON.stringify(result.content, null, 2);
+            this.currentOutlineVersion = version;
+
+            // 同步下拉框
+            document.getElementById('outlineVersionSelect').value = version;
+
+        } catch (error) {
+            Utils.showError(`加载大纲失败: ${error.message}`);
         }
     }
 
@@ -1269,6 +1329,50 @@ class SettingsManager {
         }
     }
 
+    async createNewOutlineVersion() {
+        if (!this.currentNovelId) {
+            Utils.showError('请先加载小说设定');
+            return;
+        }
+
+        try {
+            const currentContent = document
+                .getElementById('outlineSettings')
+                .value.trim();
+            if (!currentContent) {
+                Utils.showError('当前没有大纲内容可复制');
+                return;
+            }
+
+            const response = await fetch(
+                `${API_BASE}/settings/${this.currentNovelId}/outline/new`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content: JSON.parse(currentContent),
+                        base_version: this.currentOutlineVersion
+                    })
+                }
+            );
+            if (!response.ok) throw new Error('创建新版本失败');
+
+            const result = await response.json();
+
+            // 重新加载列表并选中
+            await this.loadSettings();
+            this.loadOutlineSettings(result.new_version);
+
+            Utils.showStatus(
+                'settingsInfo',
+                `✅ 创建大纲版本 ${result.new_version} 成功`,
+                'success'
+            );
+        } catch (error) {
+            Utils.showError(`创建新版本失败: ${error.message}`);
+        }
+    }
+
     async saveCharacterSettings() {
         if (!this.currentNovelId || !this.currentCharacterVersion) {
             Utils.showError('请先选择要保存的版本');
@@ -1338,6 +1442,46 @@ class SettingsManager {
             }
         }
     }
+
+    async saveOutlineSettings() {
+        if (!this.currentNovelId || !this.currentOutlineVersion) {
+            Utils.showError('请先选择要保存的版本');
+            return;
+        }
+
+        try {
+            const contentStr = document
+                .getElementById('outlineSettings')
+                .value.trim();
+            if (!contentStr) {
+                Utils.showError('大纲内容不能为空');
+                return;
+            }
+
+            const parsedContent = JSON.parse(contentStr);
+
+            const response = await fetch(
+                `${API_BASE}/settings/${this.currentNovelId}/outline/${this.currentOutlineVersion}`,
+                {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: parsedContent })
+                }
+            );
+            if (!response.ok) throw new Error('保存失败');
+
+            Utils.showStatus('settingsInfo', '✅ 大纲保存成功', 'success');
+        } catch (error) {
+            if (error instanceof SyntaxError) {
+                Utils.showError('JSON格式错误，请检查语法');
+            } else {
+                Utils.showError(`保存失败: ${error.message}`);
+            }
+        }
+    }
+
+
+
 
     showSettingsInfo(message, type = 'info') {
         const infoDiv = document.getElementById('settingsInfo');

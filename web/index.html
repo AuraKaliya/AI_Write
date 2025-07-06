@@ -85,6 +85,7 @@
                     </div>
 
                     <div class="settings-versions">
+
                         <div class="version-group">
                             <label>👤 人物设定版本:</label>
                             <select id="characterVersionSelect">
@@ -100,6 +101,14 @@
                             </select>
                             <button id="newWorldBtn" class="btn-small">➕ 新建</button>
                         </div>
+                        
+                        <div class="version-group">
+                            <label>🌍 小说大纲:</label>
+                            <select id="outlineVersionSelect">
+                                <option value="">选择版本...</option>
+                            </select>
+                            <button id="newOutlineBtn" class="btn-small">➕ 新建</button>
+                        </div>
                     </div>
                 </div>
 
@@ -114,6 +123,12 @@
                         <label>🌍 世界设定 (World Bible)</label>
                         <textarea id="worldSettings" placeholder="世界设定JSON将显示在这里..."></textarea>
                         <button id="saveWorldBtn" class="btn-primary">💾 保存世界设定</button>
+                    </div>
+
+                    <div class="settings-editor">
+                        <label>🌍 小说大纲 (Novel Outline)</label>
+                        <textarea id="outlineSettings" placeholder="世界设定JSON将显示在这里..."></textarea>
+                        <button id="saveOutlineBtn" class="btn-primary">💾 保存小说大纲</button>
                     </div>
                 </div>
             </div>
@@ -166,6 +181,7 @@
                             <label><input type="checkbox" id="useState" checked> 使用角色状态</label>
                             <label><input type="checkbox" id="useWorldBible" checked> 使用世界设定</label>
                             <label><input type="checkbox" id="updateState"> 更新角色状态</label>
+                            <label><input type="checkbox" id="useOutline" checked> 使用小说大纲</label>
                         </div>
                         <div class="memory-help">
                             <small>
@@ -184,6 +200,16 @@
                 </div>
 
                 <div class="generate-content">
+                    <div class="content-section">
+                    <h3>🔑 关键词</h3>
+                        <input
+                        type="text"
+                        id="keywordsInput"
+                        placeholder="请输入关键词，用逗号分隔（例：复仇,奇遇,师徒情）"
+                        style="width:100%; padding:8px; box-sizing:border-box;"
+                        />
+                    </div>
+
                     <div class="content-section">
                         <h3>📖 章节细纲</h3>
                         <textarea id="chapterOutline" placeholder='【第一章：初入宗门】
